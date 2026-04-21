@@ -48,4 +48,10 @@ def generate_launch_description():
             output='screen',
             parameters=[mission_config]
         ),
+        Node(
+            package='search_and_nav',
+            executable='mock_detection_adapter',
+            name='mock_detection_adapter',
+            output='screen'
+        ),
     ])

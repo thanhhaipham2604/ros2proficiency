@@ -28,11 +28,11 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'mission_manager = par_snc.mission_manager:main',
-            'exploration_node = par_snc.exploration_node:main',
-            'hazard_mapper = par_snc.hazard_mapper:main',
-            'path_tracker = par_snc.path_tracker:main',
-            'start_detector = par_snc.start_detector:main',
+            'mission_manager = search_and_nav.mission_manager:main',
+            'exploration_node = search_and_nav.exploration_node:main',
+            'hazard_mapper = search_and_nav.hazard_mapper:main',
+            'path_tracker = search_and_nav.path_tracker:main',
+            'start_detector = search_and_nav.start_detector:main',
         ],
     },
 )

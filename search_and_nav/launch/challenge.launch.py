@@ -5,7 +5,7 @@ import os
 
 
 def generate_launch_description():
-    pkg_share = get_package_share_directory('par_snc')
+    pkg_share = get_package_share_directory('search_and_nav')
 
     mission_config = os.path.join(pkg_share, 'config', 'mission.yaml')
     exploration_config = os.path.join(pkg_share, 'config', 'exploration.yaml')
@@ -14,35 +14,35 @@ def generate_launch_description():
 
     return LaunchDescription([
         Node(
-            package='par_snc',
+            package='search_and_nav',
             executable='mission_manager',
             name='mission_manager',
             output='screen',
             parameters=[mission_config]
         ),
         Node(
-            package='par_snc',
+            package='search_and_nav',
             executable='exploration_node',
             name='exploration_node',
             output='screen',
             parameters=[exploration_config]
         ),
         Node(
-            package='par_snc',
+            package='search_and_nav',
             executable='hazard_mapper',
             name='hazard_mapper',
             output='screen',
             parameters=[hazard_config]
         ),
         Node(
-            package='par_snc',
+            package='search_and_nav',
             executable='path_tracker',
             name='path_tracker',
             output='screen',
             parameters=[path_config]
         ),
         Node(
-            package='par_snc',
+            package='search_and_nav',
             executable='start_detector',
             name='start_detector',
             output='screen',

@@ -75,7 +75,7 @@ class HazardLocatorNode(Node):
             obj_x_robot = dist * math.cos(0.0)
             obj_y_robot = dist * math.sin(0.0)
 
-            # Chuyển sang hệ tọa độ Map
+            # Change to map locations
             map_x = trans.transform.translation.x + (obj_x_robot * math.cos(yaw) - obj_y_robot * math.sin(yaw))
             map_y = trans.transform.translation.y + (obj_x_robot * math.sin(yaw) + obj_y_robot * math.cos(yaw))
 

@@ -6,7 +6,6 @@ from std_msgs.msg import String, Empty
 
 
 class MissionState(enum.Enum):
-    IDLE = 'IDLE'
     WAITING_FOR_START = 'WAITING_FOR_START'
     EXPLORING = 'EXPLORING'
     RETURNING_HOME = 'RETURNING_HOME'
@@ -30,19 +29,19 @@ class MissionManager(Node):
         self.create_subscription(Empty, '/trigger_teleop', self.on_trigger_teleop, 10)
         self.create_subscription(String, '/snc/hazard_found', self.on_hazard_found, 10)
         self.create_subscription(Empty, '/snc/return_complete', self.on_return_complete, 10)
+        self.create_subscription(Empty, '/snc/start_detected', self.on_trigger_start, 10)
 
         self.state = MissionState.WAITING_FOR_START
         self.found_hazards = set()
-
-        self.timer = self.create_timer(1.0, self.on_timer)
         self.start_time = None
 
+        self.timer = self.create_timer(1.0, self.on_timer)
         self.publish_state()
 
     def publish_state(self):
-        msg = String()
-        msg.data = self.state.value
-        self.state_pub.publish(msg)
+        s = String()
+        s.data = self.state.value
+        self.state_pub.publish(s)
 
         status = String()
         status.data = f'{self.state.value} | hazards_found={len(self.found_hazards)}'
@@ -78,14 +77,16 @@ class MissionManager(Node):
         self.publish_state()
 
     def on_timer(self):
-        if self.state == MissionState.EXPLORING and self.start_time is not None:
-            elapsed = (self.get_clock().now() - self.start_time).nanoseconds / 1e9
-            limit = self.get_parameter('auto_return_after_seconds').value
-            if elapsed >= limit:
-                self.get_logger().info('Auto return triggered by timer')
-                self.state = MissionState.RETURNING_HOME
-                self.return_request_pub.publish(Empty())
-                self.publish_state()
+        if self.state != MissionState.EXPLORING or self.start_time is None:
+            return
+
+        elapsed = (self.get_clock().now() - self.start_time).nanoseconds / 1e9
+        limit = self.get_parameter('auto_return_after_seconds').value
+        if elapsed >= limit:
+            self.get_logger().info('Auto-return timer reached')
+            self.state = MissionState.RETURNING_HOME
+            self.return_request_pub.publish(Empty())
+            self.publish_state()
 
 
 def main():

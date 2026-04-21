@@ -54,11 +54,29 @@ class HazardLocatorNode(Node):
         # 2. Check HAZARD MARKERS
         if self.is_started:
             # Check Laser
-            distance = self.current_scan.ranges[0] 
+            distance = self.get_range_for_bearing(0.0) 
 
-            if not math.isinf(distance) and not math.isnan(distance):
-                # Copute location
+            if distance is not None:
                 self.compute_and_store_hazard(obj_id, distance)
+
+    def get_range_for_bearing(self, bearing_rad):
+        scan = self.latest_scan
+        if scan is None:
+            return None
+
+        index = int((bearing_rad - scan.angle_min) / scan.angle_increment)
+        window = range(max(0, index - 2), min(len(scan.ranges), index + 3))
+
+        vals = [
+            scan.ranges[i] for i in window
+            if math.isfinite(scan.ranges[i]) and scan.range_min < scan.ranges[i] < scan.range_max
+        ]
+
+        if not vals:
+            return None
+
+        vals.sort()
+        return vals[len(vals) // 2]
 
     def compute_and_store_hazard(self, obj_id, dist):
         try:

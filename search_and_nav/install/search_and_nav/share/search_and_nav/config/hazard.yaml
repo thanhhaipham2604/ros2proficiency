@@ -1,0 +1,5 @@
+hazard_mapper:
+  ros__parameters:
+    laser_angle_window_deg: 4.0
+    duplicate_distance_threshold: 0.45
+    min_confirmations: 3

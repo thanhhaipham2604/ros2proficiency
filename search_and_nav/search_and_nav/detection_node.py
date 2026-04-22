@@ -2,7 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, Empty  # Added Empty
 from visualization_msgs.msg import Marker, MarkerArray 
 from tf2_ros import TransformListener, Buffer
 import math
@@ -12,10 +12,8 @@ class HazardLocatorNode(Node):
         super().__init__('hazard_locator_node')
         
         self.START_MARKER_ID = 13.0 
-        
-
         self.is_started = False
-        self.found_hazards = {} # Save as {id: (x, y)}
+        self.found_hazards = {} 
         self.current_scan = None
         
         # --- TF & SUBSCRIBERS ---
@@ -28,9 +26,11 @@ class HazardLocatorNode(Node):
         self.scan_sub = self.create_subscription(
             LaserScan, '/scan', self.scan_callback, 10)
 
-        # --- PUBLISHER ---
-        # 
+        # --- PUBLISHERS ---
         self.marker_pub = self.create_publisher(MarkerArray, '/hazards', 10)
+        
+        # NEW: Publisher to trigger the mission start
+        self.start_pub = self.create_publisher(Empty, '/snc/start_detected', 10)
             
         self.get_logger().info("Hazard Locator Node is ready...")
 
@@ -38,29 +38,31 @@ class HazardLocatorNode(Node):
         self.current_scan = msg
 
     def object_callback(self, msg):
-        # find_object_2d : [id, width, height, mat...]
         if len(msg.data) == 0 or self.current_scan is None:
             return
 
         obj_id = msg.data[0]
 
-        # 1. Cehck START
+        # 1. Check START
         if obj_id == self.START_MARKER_ID:
             if not self.is_started:
                 self.is_started = True
-                self.get_logger().info("Found Start Sign")
-            return # Not save Start Location
+                self.get_logger().info("!!! START MARKER DETECTED - Triggering Exploration !!!")
+                
+                # Automatically trigger the mission
+                start_msg = Empty()
+                self.start_pub.publish(start_msg)
+            return 
 
-        # 2. Check HAZARD MARKERS
+        # 2. Check HAZARD MARKERS (Only if started)
         if self.is_started:
-            # Check Laser
             distance = self.get_range_for_bearing(0.0) 
-
             if distance is not None:
                 self.compute_and_store_hazard(obj_id, distance)
 
     def get_range_for_bearing(self, bearing_rad):
-        scan = self.latest_scan
+        # Corrected variable name from self.latest_scan to self.current_scan
+        scan = self.current_scan
         if scan is None:
             return None
 

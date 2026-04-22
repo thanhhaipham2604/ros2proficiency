@@ -1,0 +1,5 @@
+path_tracker:
+  ros__parameters:
+    explore_sample_distance: 0.20
+    return_waypoint_spacing: 0.30
+    waypoint_reached_timeout: 20.0

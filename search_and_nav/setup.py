@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
-import os
 from glob import glob
+import os 
 
 package_name = 'search_and_nav'
 
@@ -13,9 +13,6 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
-        
-        # Ensure BOTH images and yaml config files are installed
-        (os.path.join('share', package_name, 'config'), glob('config/*.png')),
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
     ],
     install_requires=['setuptools'],
@@ -29,9 +26,12 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'mission_node = search_and_nav.mission_node:main',
-            'navigation_node = search_and_nav.navigation_node:main',
-            'perception_node = search_and_nav.perception_node:main',
+            'mission_manager = search_and_nav.mission_manager:main',
+            'exploration_node = search_and_nav.exploration_node:main',
+            'hazard_mapper = search_and_nav.hazard_mapper:main',
+            'path_tracker = search_and_nav.path_tracker:main',
+            'start_detector = search_and_nav.start_detector:main',
+            'mock_detection_adapter = search_and_nav.mock_detection_adapter:main',
         ],
     },
 )

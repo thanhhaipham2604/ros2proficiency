@@ -7,8 +7,8 @@ from std_msgs.msg import String, Empty
 from nav_msgs.msg import OccupancyGrid, Path
 from nav2_msgs.action import NavigateToPose
 
-from nav_and_search.tf_utils import TFHelper
-from nav_and_search.map_utils import extract_frontiers, cluster_frontiers, centroid_world
+from search_and_nav.tf_utils import TFHelper
+from search_and_nav.map_utils import extract_frontiers, cluster_frontiers, centroid_world
 
 
 class NavigationNode(Node):

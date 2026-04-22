@@ -17,7 +17,6 @@ setup(
         # Ensure BOTH images and yaml config files are installed
         (os.path.join('share', package_name, 'config'), glob('config/*.png')),
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
-        (os.path.join('share', package_name, 'config'), glob('config/*.bin'))
     ],
     install_requires=['setuptools'],
     zip_safe=True,

@@ -29,9 +29,11 @@ setup(
             'pytest',
         ],
     },
-    entry_points={
-        'console_scripts': [
-            'hazard_locator = search_and_nav.hazard_locator_node:main',
-        ],
-    },
+        entry_points={
+            'console_scripts': [
+                'mission_node = par_snc.mission_node:main',
+                'navigation_node = par_snc.navigation_node:main',
+                'perception_node = par_snc.perception_node:main',
+            ],
+        },
 )

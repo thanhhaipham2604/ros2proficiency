@@ -1,0 +1,4 @@
+mission_manager:
+  ros__parameters:
+    total_expected_hazards: 5
+    auto_return_after_seconds: 240.0

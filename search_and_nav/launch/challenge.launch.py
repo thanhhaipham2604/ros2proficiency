@@ -28,7 +28,28 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        find_obj_node,
+        Node(
+            package='find_object_2d',
+            executable='find_object_2d',
+            parameters=[{
+                'objects_path': objects_path,
+                'gui': False,
+                'subscribe_depth': True
+            }],
+            remappings=[
+                # Updated to match the topic that was actually publishing in your hz test
+                ('image', '/oak/rgb/color') 
+            ],
+            output='screen'
+        ),
+        
+        # ADDED: This starts the HazardLocatorNode logic
+        Node(
+            package='search_and_nav',
+            executable='detection_node',
+            name='detection_node',
+            output='screen'
+        ),
         Node(
             package='search_and_nav',
             executable='mission_manager',

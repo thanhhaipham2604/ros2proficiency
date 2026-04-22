@@ -7,12 +7,49 @@ import os
 def generate_launch_description():
     pkg_share = get_package_share_directory('search_and_nav')
 
+    objects_path = os.path.join(pkg_share, 'config')
     mission_config = os.path.join(pkg_share, 'config', 'mission.yaml')
     exploration_config = os.path.join(pkg_share, 'config', 'exploration.yaml')
     hazard_config = os.path.join(pkg_share, 'config', 'hazard.yaml')
     path_config = os.path.join(pkg_share, 'config', 'path.yaml')
 
+    find_obj_node = Node(
+        package='find_object_2d',
+        executable='find_object_2d',
+        parameters=[{
+            'objects_path': objects_path,
+            'gui': False, # Set to False to save RAM/CPU
+            'subscribe_depth': True
+        }],
+        remappings=[
+            ('image', '/oak/rgb/image_raw') # Match your robot's camera topic
+        ],
+        output='screen'
+    )
+
     return LaunchDescription([
+        Node(
+            package='find_object_2d',
+            executable='find_object_2d',
+            parameters=[{
+                'objects_path': objects_path,
+                'gui': False,
+                'subscribe_depth': True
+            }],
+            remappings=[
+                # Updated to match the topic that was actually publishing in your hz test
+                ('image', '/oak/rgb/color') 
+            ],
+            output='screen'
+        ),
+        
+        # ADDED: This starts the HazardLocatorNode logic
+        Node(
+            package='search_and_nav',
+            executable='detection_node',
+            name='detection_node',
+            output='screen'
+        ),
         Node(
             package='search_and_nav',
             executable='mission_manager',

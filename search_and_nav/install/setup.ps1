@@ -1,3 +1,4 @@
+
 # generated from colcon_powershell/shell/template/prefix_chain.ps1.em
 
 # This script extends the environment with the environment of other prefix
@@ -22,11 +23,10 @@ function _colcon_prefix_chain_powershell_source_script {
 }
 
 # source chained prefixes
-_colcon_prefix_chain_powershell_source_script "/opt/ros/jazzy\local_setup.ps1"
-_colcon_prefix_chain_powershell_source_script "/home/user/ros2_ws/install\local_setup.ps1"
-_colcon_prefix_chain_powershell_source_script "/home/simulations/ros2_sims_ws/install\local_setup.ps1"
-_colcon_prefix_chain_powershell_source_script "/home/user/aiil_workspace/humble_workspace/install\local_setup.ps1"
+_colcon_prefix_chain_powershell_source_script "/opt/ros/jazzy/local_setup.ps1"
+_colcon_prefix_chain_powershell_source_script "/home/den/aiil_workspace/humble_workspace/src/install/local_setup.ps1"
+_colcon_prefix_chain_powershell_source_script "/home/den/aiil_workspace/humble_workspace/install/local_setup.ps1"
 
 # source this prefix
 $env:COLCON_CURRENT_PREFIX=(Split-Path $PSCommandPath -Parent)
-_colcon_prefix_chain_powershell_source_script "$env:COLCON_CURRENT_PREFIX\local_setup.ps1"
+_colcon_prefix_chain_powershell_source_script "$env:COLCON_CURRENT_PREFIX/local_setup.ps1"

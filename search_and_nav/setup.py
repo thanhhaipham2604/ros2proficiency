@@ -33,6 +33,7 @@ setup(
             'path_tracker = search_and_nav.path_tracker:main',
             'start_detector = search_and_nav.start_detector:main',
             'mock_detection_adapter = search_and_nav.mock_detection_adapter:main',
+            'detection_node = search_and_nav.detection_node:main',
         ],
     },
 )

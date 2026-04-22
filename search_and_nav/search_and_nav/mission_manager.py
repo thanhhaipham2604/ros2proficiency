@@ -39,9 +39,9 @@ class MissionManager(Node):
         self.publish_state()
 
     def publish_state(self):
-        s = String()
-        s.data = self.state.value
-        self.state_pub.publish(s)
+        state_msg = String()
+        state_msg.data = self.state.value
+        self.state_pub.publish(state_msg)
 
         status = String()
         status.data = f'{self.state.value} | hazards_found={len(self.found_hazards)}'
@@ -77,16 +77,18 @@ class MissionManager(Node):
         self.publish_state()
 
     def on_timer(self):
-        if self.state != MissionState.EXPLORING or self.start_time is None:
-            return
+        
+        # always republish current status
+        self.publish_state()
 
-        elapsed = (self.get_clock().now() - self.start_time).nanoseconds / 1e9
-        limit = self.get_parameter('auto_return_after_seconds').value
-        if elapsed >= limit:
-            self.get_logger().info('Auto-return timer reached')
-            self.state = MissionState.RETURNING_HOME
-            self.return_request_pub.publish(Empty())
-            self.publish_state()
+        if self.state == MissionState.EXPLORING and self.start_time is not None:
+            elapsed = (self.get_clock().now() - self.start_time).nanoseconds / 1e9
+            limit = self.get_parameter('auto_return_after_seconds').value
+            if elapsed >= limit:
+                self.get_logger().info('Auto-return timer reached')
+                self.state = MissionState.RETURNING_HOME
+                self.return_request_pub.publish(Empty())
+                self.publish_state()
 
 
 def main():

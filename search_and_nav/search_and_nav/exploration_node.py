@@ -9,8 +9,8 @@ from nav_msgs.msg import OccupancyGrid
 from visualization_msgs.msg import Marker, MarkerArray
 from nav2_msgs.action import NavigateToPose
 
-from par_snc.tf_utils import TFHelper
-from par_snc.map_utils import extract_frontiers, cluster_frontiers, centroid_world
+from search_and_nav.tf_utils import TFHelper
+from search_and_nav.map_utils import extract_frontiers, cluster_frontiers, centroid_world
 
 
 class ExplorationNode(Node):

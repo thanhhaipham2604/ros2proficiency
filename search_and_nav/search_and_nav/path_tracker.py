@@ -8,8 +8,8 @@ from std_msgs.msg import String, Empty
 from nav_msgs.msg import Path
 from nav2_msgs.action import NavigateToPose
 
-from par_snc.tf_utils import TFHelper
-from par_snc.map_utils import simplify_pose_list
+from search_and_nav.tf_utils import TFHelper
+from search_and_nav.map_utils import simplify_pose_list
 
 
 class PathTracker(Node):

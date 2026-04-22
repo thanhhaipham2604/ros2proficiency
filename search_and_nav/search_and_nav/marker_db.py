@@ -1,5 +1,5 @@
 import math
-from par_snc.types import HazardEntry
+from search_and_nav.types import HazardEntry
 
 
 class MarkerDB:

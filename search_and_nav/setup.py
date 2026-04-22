@@ -31,9 +31,9 @@ setup(
     },
         entry_points={
             'console_scripts': [
-                'mission_node = par_snc.mission_node:main',
-                'navigation_node = par_snc.navigation_node:main',
-                'perception_node = par_snc.perception_node:main',
+                'mission_node = search_and_nav.mission_node:main',
+                'navigation_node = search_and_nav.navigation_node:main',
+                'perception_node = search_and_nav.perception_node:main',
             ],
         },
 )

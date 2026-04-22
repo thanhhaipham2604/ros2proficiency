@@ -16,7 +16,7 @@ def generate_launch_description():
             name='find_object_2d',
             output='screen',
             parameters=[{
-                'objects_path': session_file_path ,
+                'session_path': os.path.join(pkg_share, 'config', 'markers.bin'),
                 'gui': False, # Recommended for the real-robot eval
                 'subscribe_depth': True
             }],

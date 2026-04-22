@@ -1,33 +1,99 @@
 import math
-from search_and_nav.types import HazardEntry
+from collections import deque
+import numpy as np
 
 
-class MarkerDB:
-    def __init__(self, duplicate_distance_threshold=0.45, min_confirmations=3):
-        self.duplicate_distance_threshold = duplicate_distance_threshold
-        self.min_confirmations = min_confirmations
-        self.entries = []
+def occupancy_to_numpy(map_msg):
+    width = map_msg.info.width
+    height = map_msg.info.height
+    return np.array(map_msg.data, dtype=np.int16).reshape((height, width))
 
-    def add_observation(self, hazard_id, x_map, y_map):
-        for entry in self.entries:
-            if entry.hazard_id != hazard_id:
+
+def grid_to_world(gx, gy, map_msg):
+    origin = map_msg.info.origin.position
+    res = map_msg.info.resolution
+    wx = origin.x + (gx + 0.5) * res
+    wy = origin.y + (gy + 0.5) * res
+    return wx, wy
+
+
+def world_to_grid(wx, wy, map_msg):
+    origin = map_msg.info.origin.position
+    res = map_msg.info.resolution
+    gx = int((wx - origin.x) / res)
+    gy = int((wy - origin.y) / res)
+    return gx, gy
+
+
+def extract_frontiers(map_msg):
+    data = occupancy_to_numpy(map_msg)
+    h, w = data.shape
+    frontiers = []
+
+    for y in range(1, h - 1):
+        for x in range(1, w - 1):
+            if data[y, x] != 0:
                 continue
-            dist = math.hypot(entry.x_map - x_map, entry.y_map - y_map)
-            if dist <= self.duplicate_distance_threshold:
-                entry.count += 1
-                alpha = 1.0 / entry.count
-                entry.x_map = (1 - alpha) * entry.x_map + alpha * x_map
-                entry.y_map = (1 - alpha) * entry.y_map + alpha * y_map
-                return entry, False
+            local = data[y - 1:y + 2, x - 1:x + 2]
+            if np.any(local == -1):
+                frontiers.append((x, y))
 
-        new_entry = HazardEntry(
-            hazard_id=hazard_id,
-            x_map=x_map,
-            y_map=y_map,
-            count=1
-        )
-        self.entries.append(new_entry)
-        return new_entry, True
+    return frontiers
 
-    def confirmed_entries(self):
-        return [e for e in self.entries if e.count >= self.min_confirmations]
+
+def cluster_frontiers(frontier_cells):
+    frontier_set = set(frontier_cells)
+    visited = set()
+    clusters = []
+
+    for cell in frontier_cells:
+        if cell in visited:
+            continue
+
+        q = deque([cell])
+        visited.add(cell)
+        cluster = []
+
+        while q:
+            cx, cy = q.popleft()
+            cluster.append((cx, cy))
+
+            for nx in range(cx - 1, cx + 2):
+                for ny in range(cy - 1, cy + 2):
+                    if (nx, ny) == (cx, cy):
+                        continue
+                    if (nx, ny) in frontier_set and (nx, ny) not in visited:
+                        visited.add((nx, ny))
+                        q.append((nx, ny))
+
+        clusters.append(cluster)
+
+    return clusters
+
+
+def centroid_world(cluster, map_msg):
+    xs = [p[0] for p in cluster]
+    ys = [p[1] for p in cluster]
+    gx = float(sum(xs)) / len(xs)
+    gy = float(sum(ys)) / len(ys)
+    return grid_to_world(gx, gy, map_msg)
+
+
+def simplify_pose_list(poses, min_spacing=0.25):
+    if not poses:
+        return []
+
+    result = [poses[0]]
+    last = poses[0].pose.position
+
+    for pose in poses[1:]:
+        curr = pose.pose.position
+        dist = math.hypot(curr.x - last.x, curr.y - last.y)
+        if dist >= min_spacing:
+            result.append(pose)
+            last = curr
+
+    if result[-1] != poses[-1]:
+        result.append(poses[-1])
+
+    return result

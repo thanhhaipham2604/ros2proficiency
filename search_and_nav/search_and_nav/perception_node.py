@@ -7,8 +7,8 @@ from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import PointStamped
 from visualization_msgs.msg import Marker
 
-from par_snc.tf_utils import TFHelper
-from par_snc.marker_db import MarkerDB
+from nav_and_search.tf_utils import TFHelper
+from nav_and_search.marker_db import MarkerDB
 
 
 class PerceptionNode(Node):

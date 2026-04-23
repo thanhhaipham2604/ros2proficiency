@@ -13,43 +13,43 @@ def generate_launch_description():
     hazard_config = os.path.join(pkg_share, 'config', 'hazard.yaml')
     path_config = os.path.join(pkg_share, 'config', 'path.yaml')
 
-    find_obj_node = Node(
-        package='find_object_2d',
-        executable='find_object_2d',
-        parameters=[{
-            'objects_path': objects_path,
-            'gui': False, # Set to False to save RAM/CPU
-            'subscribe_depth': True
-        }],
-        remappings=[
-            ('image', '/oak/rgb/image_raw') # Match your robot's camera topic
-        ],
-        output='screen'
-    )
+    # find_obj_node = Node(
+    #     package='find_object_2d',
+    #     executable='find_object_2d',
+    #     parameters=[{
+    #         'objects_path': objects_path,
+    #         'gui': False, # Set to False to save RAM/CPU
+    #         'subscribe_depth': True
+    #     }],
+    #     remappings=[
+    #         ('image', '/oak/rgb/image_raw') # Match your robot's camera topic
+    #     ],
+    #     output='screen'
+    # )
 
     return LaunchDescription([
-        Node(
-            package='find_object_2d',
-            executable='find_object_2d',
-            parameters=[{
-                'objects_path': objects_path,
-                'gui': False,
-                'subscribe_depth': True
-            }],
-            remappings=[
-                # Updated to match the topic that was actually publishing in your hz test
-                ('image', '/oak/rgb/color') 
-            ],
-            output='screen'
-        ),
+        # Node(
+        #     package='find_object_2d',
+        #     executable='find_object_2d',
+        #     parameters=[{
+        #         'objects_path': objects_path,
+        #         'gui': False,
+        #         'subscribe_depth': True
+        #     }],
+        #     remappings=[
+        #         # Updated to match the topic that was actually publishing in your hz test
+        #         ('image', '/oak/rgb/color') 
+        #     ],
+        #     output='screen'
+        # ),
         
         # ADDED: This starts the HazardLocatorNode logic
-        Node(
-            package='search_and_nav',
-            executable='detection_node',
-            name='detection_node',
-            output='screen'
-        ),
+        # Node(
+        #     package='search_and_nav',
+        #     executable='detection_node',
+        #     name='detection_node',
+        #     output='screen'
+        # ),
         Node(
             package='search_and_nav',
             executable='mission_manager',
@@ -84,11 +84,5 @@ def generate_launch_description():
             name='start_detector',
             output='screen',
             parameters=[mission_config]
-        ),
-        Node(
-            package='search_and_nav',
-            executable='mock_detection_adapter',
-            name='mock_detection_adapter',
-            output='screen'
         ),
     ])

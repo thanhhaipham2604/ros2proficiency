@@ -19,6 +19,9 @@ class HazardMapper(Node):
         self.declare_parameter('laser_angle_window_deg', 4.0)
         self.declare_parameter('duplicate_distance_threshold', 0.45)
         self.declare_parameter('min_confirmations', 3)
+        self.declare_parameter('robot_frame', 'base_link')
+        self.declare_parameter('range_min_valid', 0.10)
+        self.declare_parameter('range_max_valid', 3.50)
 
         duplicate_threshold = self.get_parameter('duplicate_distance_threshold').value
         min_confirmations = self.get_parameter('min_confirmations').value
@@ -26,6 +29,7 @@ class HazardMapper(Node):
 
         self.tf = TFHelper(self)
         self.latest_scan = None
+        self.warn_count = 0
 
         self.marker_pub = self.create_publisher(Marker, '/hazards', 10)
         self.hazard_found_pub = self.create_publisher(String, '/snc/hazard_found', 10)
@@ -43,7 +47,7 @@ class HazardMapper(Node):
         example: "3,-12.5"
         """
         if self.latest_scan is None:
-            self.get_logger().warn('No scan yet')
+            self.throttled_warn('No scan yet')
             return
 
         try:
@@ -56,19 +60,23 @@ class HazardMapper(Node):
 
         range_m = self.range_from_bearing_deg(bearing_deg)
         if range_m is None:
-            self.get_logger().warn('No valid range for detection')
+            self.throttled_warn(f'No valid range for detection at bearing {bearing_deg:.1f}')
             return
 
-        point_cam = PointStamped()
-        point_cam.header.frame_id = 'base_link'
-        point_cam.header.stamp = self.get_clock().now().to_msg()
-        bearing_rad = math.radians(bearing_deg)
-        point_cam.point.x = range_m * math.cos(bearing_rad)
-        point_cam.point.y = range_m * math.sin(bearing_rad)
-        point_cam.point.z = 0.0
+        robot_frame = self.get_parameter('robot_frame').value
 
-        point_map = self.tf.transform_point(point_cam, 'map')
+        point_robot = PointStamped()
+        point_robot.header.frame_id = robot_frame
+        point_robot.header.stamp = self.get_clock().now().to_msg()
+
+        bearing_rad = math.radians(bearing_deg)
+        point_robot.point.x = range_m * math.cos(bearing_rad)
+        point_robot.point.y = range_m * math.sin(bearing_rad)
+        point_robot.point.z = 0.0
+
+        point_map = self.tf.transform_point(point_robot, 'map')
         if point_map is None:
+            self.throttled_warn('TF transform to map failed')
             return
 
         entry, _is_new = self.db.add_observation(
@@ -77,12 +85,17 @@ class HazardMapper(Node):
             point_map.point.y
         )
 
-        self.publish_marker(entry.hazard_id, entry.x_map, entry.y_map, entry.count)
+        # Only publish marker once confirmed
+        if entry.count >= self.db.min_confirmations:
+            self.publish_marker(entry.hazard_id, entry.x_map, entry.y_map, entry.count)
 
         if entry.count == self.db.min_confirmations:
             s = String()
             s.data = str(entry.hazard_id)
             self.hazard_found_pub.publish(s)
+            self.get_logger().info(
+                f'Confirmed hazard {entry.hazard_id} at ({entry.x_map:.2f}, {entry.y_map:.2f})'
+            )
 
     def range_from_bearing_deg(self, bearing_deg):
         scan = self.latest_scan
@@ -90,14 +103,20 @@ class HazardMapper(Node):
             return None
 
         center = math.radians(bearing_deg)
-        half_window = math.radians(self.get_parameter('laser_angle_window_deg').value) / 2.0
+        half_window = math.radians(
+            self.get_parameter('laser_angle_window_deg').value
+        ) / 2.0
+
+        min_valid = self.get_parameter('range_min_valid').value
+        max_valid = self.get_parameter('range_max_valid').value
 
         values = []
         for i, r in enumerate(scan.ranges):
             angle = scan.angle_min + i * scan.angle_increment
             if abs(angle - center) <= half_window:
                 if math.isfinite(r) and scan.range_min < r < scan.range_max:
-                    values.append(r)
+                    if min_valid <= r <= max_valid:
+                        values.append(r)
 
         if not values:
             return None
@@ -125,6 +144,11 @@ class HazardMapper(Node):
         marker.color.g = max(0.0, 1.0 - min(count, 5) / 5.0)
         marker.color.b = 0.0
         self.marker_pub.publish(marker)
+
+    def throttled_warn(self, text: str):
+        self.warn_count += 1
+        if self.warn_count % 20 == 0:
+            self.get_logger().warn(text)
 
 
 def main():

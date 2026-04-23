@@ -3,6 +3,7 @@ import math
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
 
 from std_msgs.msg import String
 from nav_msgs.msg import OccupancyGrid
@@ -18,9 +19,10 @@ class ExplorationNode(Node):
         super().__init__('exploration_node')
 
         self.declare_parameter('frontier_min_cluster_size', 8)
-        self.declare_parameter('goal_blacklist_timeout', 20.0)
-        self.declare_parameter('goal_timeout_sec', 45.0)
+        self.declare_parameter('goal_blacklist_timeout', 30.0)
+        self.declare_parameter('goal_timeout_sec', 90.0)
         self.declare_parameter('timer_period', 2.0)
+        self.declare_parameter('min_goal_distance', 0.5)
 
         self.state = 'WAITING_FOR_START'
         self.latest_map = None
@@ -35,7 +37,13 @@ class ExplorationNode(Node):
         self.nav_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
 
         self.create_subscription(String, '/snc/mission_state', self.on_state, 10)
-        self.create_subscription(OccupancyGrid, '/map', self.on_map, 10)
+
+        map_qos = QoSProfile(
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            depth=1
+        )
+        self.create_subscription(OccupancyGrid, '/map', self.on_map, map_qos)
 
         self.frontier_pub = self.create_publisher(MarkerArray, '/snc/debug/frontiers', 10)
         self.goal_pub = self.create_publisher(Marker, '/snc/debug/frontier_goal', 10)
@@ -54,6 +62,7 @@ class ExplorationNode(Node):
     def on_timer(self):
         if self.state != 'EXPLORING':
             return
+
         if self.latest_map is None:
             self.get_logger().info('Waiting for /map')
             return
@@ -65,6 +74,7 @@ class ExplorationNode(Node):
         robot_pose = self.tf.lookup_xy_yaw('map', 'base_link')
         if robot_pose is None:
             return
+
         rx, ry, _ = robot_pose
 
         frontiers = extract_frontiers(self.latest_map)
@@ -80,7 +90,7 @@ class ExplorationNode(Node):
 
         best_goal = self.select_best_goal(clusters, rx, ry)
         if best_goal is None:
-            self.get_logger().info('No non-blacklisted frontier goal found')
+            self.get_logger().info('No valid frontier goal found')
             return
 
         gx, gy = best_goal
@@ -89,14 +99,20 @@ class ExplorationNode(Node):
     def select_best_goal(self, clusters, rx, ry):
         best_score = -1e9
         best = None
+        min_goal_distance = self.get_parameter('min_goal_distance').value
 
         for cluster in clusters:
             cx, cy = centroid_world(cluster, self.latest_map)
+
             if self.is_blacklisted(cx, cy):
                 continue
 
             dist = math.hypot(cx - rx, cy - ry)
-            score = float(len(cluster)) - 2.0 * dist
+            if dist < min_goal_distance:
+                continue
+
+            # Larger cluster = better, closer = better
+            score = 1.5 * float(len(cluster)) - 2.0 * dist
 
             if score > best_score:
                 best_score = score
@@ -170,6 +186,7 @@ class ExplorationNode(Node):
     def cancel_goal(self):
         if self.goal_handle is not None:
             self.goal_handle.cancel_goal_async()
+
         self.goal_in_progress = False
         self.goal_handle = None
         self.result_future = None
@@ -179,20 +196,26 @@ class ExplorationNode(Node):
     def check_goal_timeout(self):
         if self.goal_start_time is None or self.current_goal is None:
             return
+
         timeout = self.get_parameter('goal_timeout_sec').value
         elapsed = (self.get_clock().now() - self.goal_start_time).nanoseconds / 1e9
+
         if elapsed >= timeout:
             self.get_logger().warn('Goal timeout, cancelling')
             self.blacklist_goal(*self.current_goal)
             self.cancel_goal()
 
     def blacklist_goal(self, x, y):
-        expiry = self.get_clock().now().nanoseconds / 1e9 + self.get_parameter('goal_blacklist_timeout').value
+        expiry = (
+            self.get_clock().now().nanoseconds / 1e9
+            + self.get_parameter('goal_blacklist_timeout').value
+        )
         self.blacklisted_goals.append((x, y, expiry))
 
-    def is_blacklisted(self, x, y, threshold=0.6):
+    def is_blacklisted(self, x, y, threshold=0.7):
         now = self.get_clock().now().nanoseconds / 1e9
         self.blacklisted_goals = [g for g in self.blacklisted_goals if g[2] > now]
+
         for bx, by, _ in self.blacklisted_goals:
             if math.hypot(x - bx, y - by) < threshold:
                 return True
